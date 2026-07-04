@@ -1,0 +1,20 @@
+{
+  "name": "grateful-prints-ios",
+  "version": "1.0.0",
+  "description": "Grateful Prints iOS Capacitor wrapper",
+  "private": true,
+  "scripts": {
+    "build": "echo 'Web dist is pre-built from live app'",
+    "cap:add:ios": "npx cap add ios",
+    "cap:sync": "npx cap sync ios",
+    "cap:open": "npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/ios": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0",
+    "typescript": "^6.0.3"
+  }
+}

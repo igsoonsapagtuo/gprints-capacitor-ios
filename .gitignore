@@ -1,0 +1,10 @@
+node_modules/
+*.p12
+*.mobileprovision
+certificate.p12
+build.keychain
+ios/App/Pods/
+ios/App/App.xcworkspace/xcuserdata/
+ios/App/App.xcodeproj/xcuserdata/
+*.DS_Store
+.env
