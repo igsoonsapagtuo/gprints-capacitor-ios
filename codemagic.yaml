@@ -9,7 +9,6 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.gratefulprints.app
-        provisioning_profile: grateful_prints_app_store
       groups:
         - ios_credentials
       vars:
