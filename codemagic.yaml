@@ -3,60 +3,32 @@ workflows:
     name: Grateful Prints iOS Release
     max_build_duration: 60
     instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: Codemagic Build
     environment:
-      groups:
-        - ios_credentials
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.gratefulprintsph.app
       vars:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
         BUNDLE_ID: "com.gratefulprintsph.app"
         APP_STORE_APPLE_ID: "6785534702"
-        XCODE_VERSION: "latest"
     scripts:
-      - name: Set up App Store Connect API key
-        script: |
-          echo "$APP_STORE_CONNECT_PRIVATE_KEY" | base64 --decode > /tmp/AuthKey.p8
-          chmod 600 /tmp/AuthKey.p8
-
       - name: Install Node dependencies
         script: |
           npm install
-
       - name: Install CocoaPods
         script: |
           cd ios/App && pod install
-
       - name: Sync Capacitor
         script: |
           npx cap sync ios
-
-      - name: Fetch signing files
-        script: |
-          app-store-connect fetch-signing-files \
-            "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
-            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            --private-key "@file:/tmp/AuthKey.p8" \
-            --create
-
-      - name: Set up keychain
-        script: |
-          keychain initialize
-
-      - name: Add certificates to keychain
-        script: |
-          keychain add-certificates
-
       - name: Set build number
         script: |
-          BUILD_NUMBER=$(($(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" \
-            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
-            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            --private-key "@file:/tmp/AuthKey.p8") + 1))
+          BUILD_NUMBER=$(($(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID") + 1))
           cd ios/App
           agvtool new-version -all $BUILD_NUMBER
-
       - name: Build iOS
         script: |
           xcode-project use-profiles
@@ -66,25 +38,17 @@ workflows:
             -configuration Release \
             -archivePath "$CM_BUILD_DIR/App.xcarchive" \
             archive \
-            CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             -allowProvisioningUpdates
-
       - name: Export IPA
         script: |
           xcode-project build-ipa \
             --workspace "$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME"
-
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
-
     publishing:
       app_store_connect:
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
         submit_to_app_store: false
         beta_groups:
