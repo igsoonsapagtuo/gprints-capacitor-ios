@@ -1,7 +1,7 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.gratefulprintsph.app',
+  appId: 'com.gratefulprints.app',
   appName: 'Grateful Prints',
   webDir: 'www',
   server: {
