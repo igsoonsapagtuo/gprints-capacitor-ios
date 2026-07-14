@@ -13,7 +13,8 @@ const config: CapacitorConfig = {
     contentInset: 'automatic',
     backgroundColor: '#1A3DB5',
     preferredContentMode: 'mobile',
-    limitsNavigationsToAppBoundDomains: true
+    limitsNavigationsToAppBoundDomains: true,
+    appendUserAgent: 'GratefulPrintsIOSApp'
   }
 };
 
