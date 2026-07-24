@@ -66,5 +66,11 @@
 	</dict>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>Grateful Prints uses the camera so you can take and upload photos for your profile, print designs, and order requests.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Grateful Prints accesses your photo library so you can upload photos for your profile, print designs, and order requests.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Grateful Prints saves an image to your photo library when you choose to download it.</string>
 </dict>
 </plist>
