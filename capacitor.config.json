@@ -5,7 +5,13 @@
   "server": {
     "url": "https://app.gratefulprintsph.com",
     "cleartext": false,
-    "allowNavigation": ["app.gratefulprintsph.com"]
+    "allowNavigation": [
+      "app.gratefulprintsph.com",
+      "appleid.apple.com",
+      "accounts.google.com",
+      "www.facebook.com",
+      "m.facebook.com"
+    ]
   },
   "ios": {
     "contentInset": "automatic",
