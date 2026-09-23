@@ -45,18 +45,31 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // tracking app url opens, make sure to keep this call
         if userActivity.activityType == NSUserActivityTypeBrowsingWeb,
            let url = userActivity.webpageURL,
-           AppDelegate.isAppLink(url) {
-            openInWebView(url)
+           let page = AppDelegate.inAppPage(for: url) {
+            openInWebView(page)
         }
         return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)
     }
 
-    // A Universal Link names a page of the live site this app wraps
-    // (server.url in capacitor.config.json), so its path IS the in-app route.
-    // Only the app's own host is claimed (App.entitlements); anything else is
-    // left alone.
-    private static func isAppLink(_ url: URL) -> Bool {
-        return url.scheme == "https" && url.host == "app.gratefulprintsph.com"
+    // The site hands the app only its app-handoff namespace,
+    // https://app.gratefulprintsph.com/open/<page> (server/appLinks.ts), and
+    // only for flows that began in the app, such as a payment return. The
+    // page is on the live site this app wraps (server.url in
+    // capacitor.config.json), so the app shows the same URL without the /open
+    // prefix. Only the app's own host is claimed (App.entitlements); anything
+    // else is left alone.
+    static func inAppPage(for url: URL) -> URL? {
+        guard url.scheme == "https", url.host == "app.gratefulprintsph.com",
+              var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            return nil
+        }
+        let prefix = "/open"
+        let path = components.path
+        if path == prefix || path.hasPrefix(prefix + "/") {
+            let page = String(path.dropFirst(prefix.count))
+            components.path = (page.isEmpty || page == "/" || page.hasPrefix("//")) ? "/home" : page
+        }
+        return components.url
     }
 
     // Loads the linked page in the Capacitor web view. On a cold start the
