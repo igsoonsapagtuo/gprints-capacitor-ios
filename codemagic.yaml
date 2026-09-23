@@ -27,6 +27,22 @@ workflows:
       - name: Sync Capacitor
         script: |
           npx cap sync ios
+      - name: Assert entitlements are Associated Domains only (no Apple Sign-In)
+        script: |
+          ENT=ios/App/App/App.entitlements
+          if grep -q "com.apple.developer.applesignin" ios/App/App/*.entitlements 2>/dev/null; then
+            echo "FAIL: the Apple Sign-In entitlement is back (rejected under 2.1a)"; exit 1
+          fi
+          if grep -q "apple-sign-in" package.json; then
+            echo "FAIL: apple-sign-in dependency is back in package.json"; exit 1
+          fi
+          [ "$(ls ios/App/App/*.entitlements | wc -l | tr -d ' ')" = "1" ] || { echo "FAIL: exactly one entitlements file expected"; exit 1; }
+          [ "$(/usr/libexec/PlistBuddy -c 'Print' "$ENT" | grep -c ' = ')" = "1" ] || { echo "FAIL: entitlements may only declare Associated Domains"; exit 1; }
+          DOMAINS=$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.associated-domains' "$ENT")
+          echo "$DOMAINS"
+          [ "$(echo "$DOMAINS" | grep -c 'applinks:')" = "1" ] || { echo "FAIL: only the app host may be claimed"; exit 1; }
+          echo "$DOMAINS" | grep -q "applinks:app.gratefulprintsph.com" || { echo "FAIL: applinks:app.gratefulprintsph.com missing"; exit 1; }
+          echo "OK: entitlements carry only applinks:app.gratefulprintsph.com"
       - name: Set up code signing
         script: |
           keychain initialize
@@ -45,6 +61,16 @@ workflows:
           xcode-project build-ipa \
             --workspace "$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME"
+      - name: Prove the signed app carries the Associated Domains entitlement
+        script: |
+          rm -rf /tmp/gp-ipa && mkdir -p /tmp/gp-ipa
+          unzip -q build/ios/ipa/*.ipa -d /tmp/gp-ipa
+          codesign -d --entitlements - --xml /tmp/gp-ipa/Payload/App.app > /tmp/gp-ent.plist 2>/dev/null \
+            || codesign -d --entitlements :- /tmp/gp-ipa/Payload/App.app > /tmp/gp-ent.plist
+          plutil -p /tmp/gp-ent.plist
+          grep -q "applinks:app.gratefulprintsph.com" /tmp/gp-ent.plist || { echo "FAIL: signed app lacks applinks:app.gratefulprintsph.com"; exit 1; }
+          if grep -q "com.apple.developer.applesignin" /tmp/gp-ent.plist; then echo "FAIL: signed app declares Apple Sign-In"; exit 1; fi
+          echo "OK: signed App.app carries applinks:app.gratefulprintsph.com"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
@@ -55,3 +81,81 @@ workflows:
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
         submit_to_app_store: false
+
+  ios-verify:
+    name: Grateful Prints iOS Verify (build + sign, NO publishing)
+    # Purpose: prove the tree compiles, signs and archives cleanly on a current
+    # Apple toolchain, and that the signed app carries exactly the Associated
+    # Domains entitlement. Deliberately has NO `publishing:` block, so it never
+    # uploads to TestFlight or the App Store and never consumes an Apple build
+    # number. The canonical release pipeline remains `ios-release` above.
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      xcode: latest
+      groups:
+        - ios_credentials
+      vars:
+        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        XCODE_SCHEME: "App"
+        BUNDLE_ID: "com.gratefulprints.app"
+    scripts:
+      - name: Report toolchain
+        script: |
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i iphoneos
+      - name: Install Node dependencies
+        script: |
+          npm install
+      - name: Install CocoaPods
+        script: |
+          cd ios/App && pod install
+      - name: Sync Capacitor
+        script: |
+          npx cap sync ios
+      - name: Assert entitlements are Associated Domains only (no Apple Sign-In)
+        script: |
+          ENT=ios/App/App/App.entitlements
+          if grep -q "com.apple.developer.applesignin" ios/App/App/*.entitlements 2>/dev/null; then
+            echo "FAIL: the Apple Sign-In entitlement is back (rejected under 2.1a)"; exit 1
+          fi
+          if grep -q "apple-sign-in" package.json; then
+            echo "FAIL: apple-sign-in dependency is back in package.json"; exit 1
+          fi
+          [ "$(ls ios/App/App/*.entitlements | wc -l | tr -d ' ')" = "1" ] || { echo "FAIL: exactly one entitlements file expected"; exit 1; }
+          [ "$(/usr/libexec/PlistBuddy -c 'Print' "$ENT" | grep -c ' = ')" = "1" ] || { echo "FAIL: entitlements may only declare Associated Domains"; exit 1; }
+          DOMAINS=$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.associated-domains' "$ENT")
+          echo "$DOMAINS"
+          [ "$(echo "$DOMAINS" | grep -c 'applinks:')" = "1" ] || { echo "FAIL: only the app host may be claimed"; exit 1; }
+          echo "$DOMAINS" | grep -q "applinks:app.gratefulprintsph.com" || { echo "FAIL: applinks:app.gratefulprintsph.com missing"; exit 1; }
+          echo "OK: entitlements carry only applinks:app.gratefulprintsph.com"
+      - name: Assert production host and compliance user agent
+        script: |
+          grep -q "https://app.gratefulprintsph.com" capacitor.config.json || { echo "FAIL: production host missing"; exit 1; }
+          grep -q "GratefulPrintsIOSApp" capacitor.config.json || { echo "FAIL: compliance user agent missing"; exit 1; }
+          grep -qE "localhost|ngrok|replit.app|staging" capacitor.config.json && { echo "FAIL: non-production host present"; exit 1; }
+          echo "OK: production host and compliance user agent intact"
+      - name: Set verification build number
+        script: |
+          cd ios/App
+          agvtool new-version -all 999
+      - name: Build and sign iOS
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+          keychain add-certificates
+          xcode-project use-profiles
+          xcode-project build-ipa --workspace "$XCODE_WORKSPACE" --scheme "$XCODE_SCHEME"
+      - name: Prove the signed app carries the Associated Domains entitlement
+        script: |
+          rm -rf /tmp/gp-ipa && mkdir -p /tmp/gp-ipa
+          unzip -q build/ios/ipa/*.ipa -d /tmp/gp-ipa
+          codesign -d --entitlements - --xml /tmp/gp-ipa/Payload/App.app > /tmp/gp-ent.plist 2>/dev/null \
+            || codesign -d --entitlements :- /tmp/gp-ipa/Payload/App.app > /tmp/gp-ent.plist
+          plutil -p /tmp/gp-ent.plist
+          grep -q "applinks:app.gratefulprintsph.com" /tmp/gp-ent.plist || { echo "FAIL: signed app lacks applinks:app.gratefulprintsph.com"; exit 1; }
+          if grep -q "com.apple.developer.applesignin" /tmp/gp-ent.plist; then echo "FAIL: signed app declares Apple Sign-In"; exit 1; fi
+          echo "OK: signed App.app carries applinks:app.gratefulprintsph.com"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
