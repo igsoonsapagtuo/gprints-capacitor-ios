@@ -90,3 +90,28 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
 }
+
+/// The app's root view controller (Main.storyboard). It keeps the web view
+/// below the status bar, the way a browser tab sits below its toolbar: pages
+/// never run under the status bar, their sticky headers stick below it, and
+/// the status bar sits on the Customer Home blue, which keeps its light text
+/// readable on every page. The web view still reaches the bottom edge; the web
+/// app pads its bottom bars for the home indicator itself.
+class GPBridgeViewController: CAPBridgeViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        guard let webView = webView else { return }
+        let container = UIView(frame: webView.frame)
+        container.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        container.backgroundColor = UIColor(red: 7 / 255, green: 86 / 255, blue: 200 / 255, alpha: 1)
+        view = container
+        webView.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(webView)
+        NSLayoutConstraint.activate([
+            webView.topAnchor.constraint(equalTo: container.safeAreaLayoutGuide.topAnchor),
+            webView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            webView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            webView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
+    }
+}
