@@ -19,11 +19,17 @@ const config: CapacitorConfig = {
     ]
   },
   ios: {
-    contentInset: 'automatic',
+    // The web app lays itself out under the status bar with
+    // env(safe-area-inset-*), as it does as an installed web app. 'automatic'
+    // made iOS inset the web view as well, so pages got the inset twice.
+    contentInset: 'never',
     backgroundColor: '#1A3DB5',
     preferredContentMode: 'mobile',
     limitsNavigationsToAppBoundDomains: true,
-    appendUserAgent: 'GratefulPrintsIOSApp'
+    // GratefulPrintsIOSApp marks the app (checked as a substring, so it can be
+    // followed by more markers). GPEdgeToEdge tells the web app this build
+    // draws under the status bar, so it keeps older builds unchanged.
+    appendUserAgent: 'GratefulPrintsIOSApp GPEdgeToEdge'
   }
 };
 

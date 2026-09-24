@@ -14,10 +14,10 @@
     ]
   },
   "ios": {
-    "contentInset": "automatic",
+    "contentInset": "never",
     "backgroundColor": "#1A3DB5",
     "preferredContentMode": "mobile",
     "limitsNavigationsToAppBoundDomains": true,
-    "appendUserAgent": "GratefulPrintsIOSApp"
+    "appendUserAgent": "GratefulPrintsIOSApp GPEdgeToEdge"
   }
 }
