@@ -103,7 +103,7 @@ class GPBridgeViewController: CAPBridgeViewController {
         guard let webView = webView else { return }
         let container = UIView(frame: webView.frame)
         container.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        container.backgroundColor = UIColor(red: 7 / 255, green: 86 / 255, blue: 200 / 255, alpha: 1)
+        container.backgroundColor = UIColor(red: 21 / 255, green: 101 / 255, blue: 224 / 255, alpha: 1)
         view = container
         webView.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(webView)
