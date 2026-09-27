@@ -27,7 +27,7 @@ workflows:
       - name: Sync Capacitor
         script: |
           npx cap sync ios
-      - name: Assert entitlements are Associated Domains only (no Apple Sign-In)
+      - name: Assert entitlements are Associated Domains + Push only (no Apple Sign-In)
         script: |
           ENT=ios/App/App/App.entitlements
           if grep -q "com.apple.developer.applesignin" ios/App/App/*.entitlements 2>/dev/null; then
@@ -37,12 +37,14 @@ workflows:
             echo "FAIL: apple-sign-in dependency is back in package.json"; exit 1
           fi
           [ "$(ls ios/App/App/*.entitlements | wc -l | tr -d ' ')" = "1" ] || { echo "FAIL: exactly one entitlements file expected"; exit 1; }
-          [ "$(/usr/libexec/PlistBuddy -c 'Print' "$ENT" | grep -c ' = ')" = "1" ] || { echo "FAIL: entitlements may only declare Associated Domains"; exit 1; }
+          [ "$(/usr/libexec/PlistBuddy -c 'Print' "$ENT" | grep -c ' = ')" = "2" ] || { echo "FAIL: entitlements may only declare Associated Domains and Push"; exit 1; }
+          [ "$(/usr/libexec/PlistBuddy -c 'Print :aps-environment' "$ENT")" = "production" ] || { echo "FAIL: aps-environment must be production"; exit 1; }
           DOMAINS=$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.associated-domains' "$ENT")
           echo "$DOMAINS"
           [ "$(echo "$DOMAINS" | grep -c 'applinks:')" = "1" ] || { echo "FAIL: only the app host may be claimed"; exit 1; }
           echo "$DOMAINS" | grep -q "applinks:app.gratefulprintsph.com" || { echo "FAIL: applinks:app.gratefulprintsph.com missing"; exit 1; }
-          echo "OK: entitlements carry only applinks:app.gratefulprintsph.com"
+          grep -q "CapacitorPushNotifications" ios/App/Podfile || { echo "FAIL: push plugin missing from the Podfile"; exit 1; }
+          echo "OK: entitlements carry applinks:app.gratefulprintsph.com and production push only"
       - name: Set up code signing
         script: |
           keychain initialize
@@ -70,7 +72,11 @@ workflows:
           plutil -p /tmp/gp-ent.plist
           grep -q "applinks:app.gratefulprintsph.com" /tmp/gp-ent.plist || { echo "FAIL: signed app lacks applinks:app.gratefulprintsph.com"; exit 1; }
           if grep -q "com.apple.developer.applesignin" /tmp/gp-ent.plist; then echo "FAIL: signed app declares Apple Sign-In"; exit 1; fi
-          echo "OK: signed App.app carries applinks:app.gratefulprintsph.com"
+          grep -A1 "aps-environment" /tmp/gp-ent.plist | grep -q "production" || { echo "FAIL: signed app lacks production push"; exit 1; }
+          for SOUND in grateful_prints_order_received grateful_prints_order_placed grateful_prints_general_alert; do
+            [ -s "/tmp/gp-ipa/Payload/App.app/$SOUND.caf" ] || { echo "FAIL: $SOUND.caf is not in the app bundle"; exit 1; }
+          done
+          echo "OK: signed App.app carries applinks:app.gratefulprintsph.com, production push and the three alert sounds"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
@@ -113,7 +119,7 @@ workflows:
       - name: Sync Capacitor
         script: |
           npx cap sync ios
-      - name: Assert entitlements are Associated Domains only (no Apple Sign-In)
+      - name: Assert entitlements are Associated Domains + Push only (no Apple Sign-In)
         script: |
           ENT=ios/App/App/App.entitlements
           if grep -q "com.apple.developer.applesignin" ios/App/App/*.entitlements 2>/dev/null; then
@@ -123,12 +129,14 @@ workflows:
             echo "FAIL: apple-sign-in dependency is back in package.json"; exit 1
           fi
           [ "$(ls ios/App/App/*.entitlements | wc -l | tr -d ' ')" = "1" ] || { echo "FAIL: exactly one entitlements file expected"; exit 1; }
-          [ "$(/usr/libexec/PlistBuddy -c 'Print' "$ENT" | grep -c ' = ')" = "1" ] || { echo "FAIL: entitlements may only declare Associated Domains"; exit 1; }
+          [ "$(/usr/libexec/PlistBuddy -c 'Print' "$ENT" | grep -c ' = ')" = "2" ] || { echo "FAIL: entitlements may only declare Associated Domains and Push"; exit 1; }
+          [ "$(/usr/libexec/PlistBuddy -c 'Print :aps-environment' "$ENT")" = "production" ] || { echo "FAIL: aps-environment must be production"; exit 1; }
           DOMAINS=$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.associated-domains' "$ENT")
           echo "$DOMAINS"
           [ "$(echo "$DOMAINS" | grep -c 'applinks:')" = "1" ] || { echo "FAIL: only the app host may be claimed"; exit 1; }
           echo "$DOMAINS" | grep -q "applinks:app.gratefulprintsph.com" || { echo "FAIL: applinks:app.gratefulprintsph.com missing"; exit 1; }
-          echo "OK: entitlements carry only applinks:app.gratefulprintsph.com"
+          grep -q "CapacitorPushNotifications" ios/App/Podfile || { echo "FAIL: push plugin missing from the Podfile"; exit 1; }
+          echo "OK: entitlements carry applinks:app.gratefulprintsph.com and production push only"
       - name: Assert production host and compliance user agent
         script: |
           grep -q "https://app.gratefulprintsph.com" capacitor.config.json || { echo "FAIL: production host missing"; exit 1; }
@@ -155,7 +163,11 @@ workflows:
           plutil -p /tmp/gp-ent.plist
           grep -q "applinks:app.gratefulprintsph.com" /tmp/gp-ent.plist || { echo "FAIL: signed app lacks applinks:app.gratefulprintsph.com"; exit 1; }
           if grep -q "com.apple.developer.applesignin" /tmp/gp-ent.plist; then echo "FAIL: signed app declares Apple Sign-In"; exit 1; fi
-          echo "OK: signed App.app carries applinks:app.gratefulprintsph.com"
+          grep -A1 "aps-environment" /tmp/gp-ent.plist | grep -q "production" || { echo "FAIL: signed app lacks production push"; exit 1; }
+          for SOUND in grateful_prints_order_received grateful_prints_order_placed grateful_prints_general_alert; do
+            [ -s "/tmp/gp-ipa/Payload/App.app/$SOUND.caf" ] || { echo "FAIL: $SOUND.caf is not in the app bundle"; exit 1; }
+          done
+          echo "OK: signed App.app carries applinks:app.gratefulprintsph.com, production push and the three alert sounds"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log

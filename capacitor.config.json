@@ -19,5 +19,10 @@
     "preferredContentMode": "mobile",
     "limitsNavigationsToAppBoundDomains": true,
     "appendUserAgent": "GratefulPrintsIOSApp GPEdgeToEdge"
+  },
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": []
+    }
   }
 }

@@ -30,6 +30,14 @@ const config: CapacitorConfig = {
     // followed by more markers). GPEdgeToEdge tells the web app this build
     // draws under the status bar, so it keeps older builds unchanged.
     appendUserAgent: 'GratefulPrintsIOSApp GPEdgeToEdge'
+  },
+  plugins: {
+    PushNotifications: {
+      // Nothing is shown by iOS while the app is open: the web app already
+      // plays its own sounds and cards then. Closed or in the background, the
+      // alert plays its bundled Grateful Prints sound (aps.sound).
+      presentationOptions: []
+    }
   }
 };
 
