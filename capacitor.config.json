@@ -15,7 +15,7 @@
   },
   "ios": {
     "contentInset": "never",
-    "backgroundColor": "#1A3DB5",
+    "backgroundColor": "#FFFFFF",
     "preferredContentMode": "mobile",
     "limitsNavigationsToAppBoundDomains": true,
     "appendUserAgent": "GratefulPrintsIOSApp GPEdgeToEdge"

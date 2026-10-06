@@ -23,7 +23,9 @@ const config: CapacitorConfig = {
     // env(safe-area-inset-*), as it does as an installed web app. 'automatic'
     // made iOS inset the web view as well, so pages got the inset twice.
     contentInset: 'never',
-    backgroundColor: '#1A3DB5',
+    // White behind the web view, matching the launch screen and the web
+    // start-up screen, so a launch never flashes blue before the app paints.
+    backgroundColor: '#FFFFFF',
     preferredContentMode: 'mobile',
     limitsNavigationsToAppBoundDomains: true,
     // GratefulPrintsIOSApp marks the app (checked as a substring, so it can be
